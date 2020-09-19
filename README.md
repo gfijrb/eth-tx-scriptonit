@@ -36,3 +36,14 @@ or
 ```bash
 npm run send
 ```
+
+To send whole balance from account, use command below
+
+```bash
+yarn grab
+```
+
+or
+```bash
+npm run grab
+```
