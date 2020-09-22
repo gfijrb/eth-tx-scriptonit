@@ -5,8 +5,8 @@ const { Transaction } = require('ethereumjs-tx');
 const { intToHex, bufferToHex, privateToAddress } = require('ethereumjs-util');
 const { toChecksumAddress } = require('web3-utils');
 
-const { infuraToken, pk } = require('./configs.json');
-const { to, nonce, gasPrice } = require('./tx.json');
+const { infuraToken, pk } = require('../settings/configs.json');
+const { to, nonce, gasPrice } = require('../settings/tx.json');
 
 const chain = 'mainnet',
   hardfork = 'istanbul';

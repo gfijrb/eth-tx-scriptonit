@@ -4,8 +4,8 @@
   "description": "Ethereum sing and broadcast transaction service.",
   "main": "index.js",
   "scripts": {
-    "send": "node index.js",
-    "grab": "node grab.js"
+    "send": "node scritps/send.js",
+    "grab": "node scritps/grab.js"
   },
   "author": "paul.bolhar@gmail.com",
   "license": "MIT",
