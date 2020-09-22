@@ -1,39 +1,59 @@
-const Web3 = require('web3');
 const BN = require('bn.js');
+const Web3 = require('web3');
 
 const { Transaction } = require('ethereumjs-tx');
 const { intToHex, bufferToHex, privateToAddress } = require('ethereumjs-util');
+const { toChecksumAddress } = require('web3-utils');
 
 const { infuraToken, pk } = require('./configs.json');
-let { to, nonce, gasPrice } = require('./tx.json');
+const { to, nonce, gasPrice } = require('./tx.json');
+
+const chain = 'mainnet',
+  hardfork = 'istanbul';
 
 const privateKey = Buffer.from(pk, 'hex',);
 
-async function getTxParams() {
-  if (to === "") {
+async function getTxParams(inputParams) {
+  let { to } = inputParams || {}
+  let { nonce } = inputParams || {}
+  let { gasPrice } = inputParams || {}
+
+  if (to === "" || to === undefined) {
     console.error('Transaction "to" must not be empty.');
     return;
   }
 
   const gasLimit = "21000";
   const data = '0x';
-  const from = `0x${privateToAddress(privateKey).toString('hex')}`;
+  let from = `0x${privateToAddress(privateKey).toString('hex')}`;
+
+  const web3 = new Web3(Web3.givenProvider || `https://${chain}.infura.io/v3/${infuraToken}`);
+
+  try {
+    from = toChecksumAddress(from)
+  } catch(e) {
+    console.error('invalid ethereum address', e.message);
+    return;
+  }
 
   const txParams = {
-    // from: from,
+    from: from,
     gasLimit: intToHex(Number(gasLimit)),
     to: to,
     data: data,
   }
 
-  const web3 = new Web3(Web3.givenProvider || `https://mainnet.infura.io/v3/${infuraToken}`);
-
-  nonce = await web3.eth.getTransactionCount(from, 'pending');
+  nonce = (nonce !== "") ? nonce : await web3.eth.getTransactionCount(from, 'pending');
   txParams.nonce = intToHex(Number(nonce));
 
   let balance = await web3.eth.getBalance(from);
 
   let fee = (new BN(gasPrice)).mul(new BN(gasLimit));
+  if ((new BN(balance)).lte(fee)) {
+    console.error('Zero or negative `tx.value` result expected.');
+    return;
+  }
+
   let balanceToSend = (new BN(balance)).sub(fee);
   txParams.value = intToHex(Number(balanceToSend));
 
@@ -51,7 +71,7 @@ async function signAndBroadcast(txParams) {
   console.log(txParams);
 
   // The second parameter is not necessary if these values are used
-  const tx = new Transaction(txParams, { chain: 'mainnet', hardfork: 'istanbul' });
+  const tx = new Transaction(txParams, { chain: chain, hardfork: hardfork });
   tx.sign(privateKey)
 
   if (
@@ -70,7 +90,7 @@ async function signAndBroadcast(txParams) {
 
   console.log(`Signed tx: ${serializedTx.toString('hex')}`);
 
-  const web3 = new Web3(Web3.givenProvider || `https://mainnet.infura.io/v3/${infuraToken}`);
+  const web3 = new Web3(Web3.givenProvider || `https://${chain}.infura.io/v3/${infuraToken}`);
 
   web3.eth.sendSignedTransaction(`0x${serializedTx.toString('hex')}`, function(err, hash) {
     if (err) {
@@ -83,6 +103,6 @@ async function signAndBroadcast(txParams) {
   });
 }
 
-getTxParams().then((tx) => {
+getTxParams({to, nonce, gasPrice}).then((tx) => {
   return signAndBroadcast(tx)
 }).catch(console.error);
